@@ -1,0 +1,31 @@
+# Verbatim key selection from
+# mongodb/apix-action/.github/workflows/_issue-closed.yaml@main, plus an assertion
+# in place of the transition-jira call (no real Jira credentials are used).
+name: poc issue closed key hijack
+on:
+  issues:
+    types: [closed]
+permissions:
+  contents: read
+  issues: read
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find Jira key (verbatim from _issue-closed.yaml)
+        id: find
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          JIRA_KEY=$(gh issue view ${{ github.event.issue.number }} --comments --repo ${{ github.repository }} | grep 'was created for internal tracking' | grep -oE 'CLOUDP-[0-9]+' | head -1)
+          echo "key=$JIRA_KEY" >> "$GITHUB_OUTPUT"
+      - name: Simulated transition-jira with selected key
+        run: |
+          echo "POST /rest/api/2/issue/${{ steps.find.outputs.key }}/transitions (transition-name='Resolve Issue', resolution=Done)"
+          test -n "${{ steps.find.outputs.key }}"
+          if [ "${{ steps.find.outputs.key }}" = "CLOUDP-777001" ]; then
+            echo "HIJACK CONFIRMED: attacker comment selected over the ticket the bot filed"
+          else
+            echo "selected ${{ steps.find.outputs.key }} - not the attacker key"
+            exit 1
+          fi
