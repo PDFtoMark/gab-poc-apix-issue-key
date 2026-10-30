@@ -1,0 +1,20 @@
+# Models mongodb/apix-action _issue-opened.yaml: the "bot" files a Jira ticket and
+# comments the key a short while after the issue is opened (upstream latency ~1-2 min:
+# runner start + 1Password + Jira create).
+name: poc mock ticket bot
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+  issues: write
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sleep 75
+      - uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5
+        with:
+          token: ${{ github.token }}
+          issue-number: ${{ github.event.issue.number }}
+          body: "Thanks for opening this issue. The ticket [CLOUDP-100000](https://jira.mongodb.org/browse/CLOUDP-100000) was created for internal tracking."
