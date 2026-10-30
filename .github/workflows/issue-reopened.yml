@@ -1,0 +1,25 @@
+# Verbatim key selection from
+# mongodb/apix-action/.github/workflows/_issue-reopened.yaml@main, plus a
+# simulated transition-jira call.
+name: poc issue reopened key hijack
+on:
+  issues:
+    types: [reopened]
+permissions:
+  contents: read
+  issues: read
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find Jira key (verbatim from _issue-reopened.yaml)
+        id: find
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          JIRA_KEY=$(gh issue view ${{ github.event.issue.number }} --comments --repo ${{ github.repository }} | grep 'was created for internal tracking' | grep -oE 'CLOUDP-[0-9]+' | head -1)
+          echo "key=$JIRA_KEY" >> "$GITHUB_OUTPUT"
+      - name: Simulated transition-jira with selected key
+        run: |
+          echo "POST /rest/api/2/issue/${{ steps.find.outputs.key }}/transitions (transition-name='Reopen Issue')"
+          test "${{ steps.find.outputs.key }}" = "CLOUDP-777001" && echo "REOPEN HIJACK CONFIRMED"
